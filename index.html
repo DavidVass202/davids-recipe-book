@@ -1185,6 +1185,534 @@
   }
   .timer-tray-close:hover { background: rgba(255,255,255,0.35); }
 
+  /* === Top-right planner toggle === */
+  .view-toggle {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 30;
+    background: var(--bg-card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .view-toggle:hover {
+    background: var(--ink);
+    color: var(--bg-card);
+    border-color: var(--ink);
+  }
+  .view-toggle.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .view-toggle::before { content: '▦'; font-size: 12px; }
+
+  .cook-mode.active ~ .view-toggle,
+  body:has(.modal-bg.show) .view-toggle,
+  body:has(.picker-modal.show) .view-toggle { display: none; }
+
+  /* === Planner view === */
+  .planner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 48px 100px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .planner-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .planner-title-block { flex: 1; min-width: 220px; }
+
+  .planner-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 10px;
+  }
+
+  .planner-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  .planner-sub {
+    color: var(--ink-soft);
+    margin-top: 8px;
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 16px;
+  }
+
+  .planner-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .planner-btn {
+    background: var(--ink);
+    color: var(--bg-card);
+    border: none;
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 100px;
+    transition: background 0.2s;
+  }
+  .planner-btn:hover { background: var(--accent); }
+  .planner-btn.secondary {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .planner-btn.secondary:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .planner-grid {
+    display: grid;
+    grid-template-columns: 90px repeat(7, 1fr);
+    gap: 6px;
+  }
+
+  .planner-corner {
+    grid-column: 1;
+  }
+
+  .planner-day-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 6px 4px 12px;
+  }
+
+  .planner-slot-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    padding: 14px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .planner-cell {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    min-height: 78px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .planner-cell.drag-over {
+    background: rgba(197, 70, 42, 0.08);
+    border-color: var(--accent);
+    border-style: dashed;
+  }
+
+  .planner-cell.empty:hover {
+    background: rgba(0,0,0,0.02);
+    border-color: var(--ink-soft);
+  }
+
+  .planner-cell.empty::after {
+    content: '+';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--line);
+    font-size: 24px;
+    font-family: 'Fraunces', serif;
+    pointer-events: none;
+    transition: color 0.15s;
+  }
+  .planner-cell.empty:hover::after { color: var(--ink-soft); }
+
+  .planner-meal {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.2;
+    position: relative;
+  }
+
+  .planner-meal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--ink);
+    padding-right: 16px;
+    word-break: break-word;
+  }
+
+  .planner-meal-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faded);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .planner-meal-portions {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .planner-meal-portions:hover { border-color: var(--ink); }
+
+  .planner-meal-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: transparent;
+    border: none;
+    color: var(--ink-faded);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .planner-meal:hover .planner-meal-remove { opacity: 1; }
+  .planner-meal-remove:hover { color: var(--accent); }
+
+  .planner-day-total {
+    background: transparent;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    padding: 8px 6px 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+
+  .planner-day-total.over { color: var(--accent); }
+
+  .planner-day-total-kcal {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .planner-day-total .macros {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .planner-week-total {
+    margin-top: 22px;
+    padding: 22px 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 1fr repeat(4, auto);
+    gap: 28px;
+    align-items: center;
+  }
+
+  .planner-week-total-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .planner-week-total-item {
+    text-align: center;
+  }
+
+  .planner-week-total-item .v {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    display: block;
+  }
+  .planner-week-total-item .v small {
+    font-size: 12px;
+    color: var(--ink-faded);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .planner-week-total-item .l {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-top: 4px;
+  }
+
+  /* Recipes in sidebar become draggable */
+  .recipe-item {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .recipe-item.dragging { opacity: 0.4; }
+
+  /* Mobile picker modal for adding a meal */
+  .picker-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 26, 20, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 400;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .picker-modal.show { display: flex; }
+  .picker-panel {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 540px;
+    max-height: 80vh;
+    border-radius: 16px 16px 0 0;
+    padding: 22px 22px 28px;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .picker-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .picker-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 16px;
+  }
+  .picker-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .picker-item {
+    padding: 12px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .picker-item:hover { background: rgba(0,0,0,0.04); border-color: var(--line); }
+  .picker-item-title {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .picker-item-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faded);
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+  }
+  .picker-close {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-radius: 100px;
+    cursor: pointer;
+    margin-top: 14px;
+    width: 100%;
+  }
+
+  /* Shopping list modal */
+  .week-shopping-modal { background: var(--bg-card); padding: 28px; border-radius: 4px; max-width: 720px; width: 92%; max-height: 88vh; overflow-y: auto; }
+  .week-shopping-modal h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .week-shopping-modal .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 22px;
+  }
+  .week-shopping-modal ul { list-style: none; }
+  .week-shopping-modal li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: 14px;
+  }
+  .week-shopping-modal li:last-child { border-bottom: none; }
+  .week-shopping-modal .amt {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--ink);
+    min-width: 90px;
+  }
+  .week-shopping-modal .nm { color: var(--ink-soft); flex: 1; }
+
+  @media (max-width: 1100px) {
+    .planner-grid { grid-template-columns: 70px repeat(7, 1fr); }
+    .planner-cell { padding: 6px; min-height: 70px; }
+    .planner-meal { font-size: 11px; padding: 5px 6px; }
+    .planner-day-header { font-size: 9px; padding-bottom: 8px; }
+    .planner-slot-label { font-size: 9px; padding: 10px 4px; }
+  }
+
+  @media (max-width: 768px) {
+    .planner { padding: 70px 16px 100px; }
+    .planner-title { font-size: 32px; }
+    .planner-header { gap: 16px; }
+
+    /* Stack as day-by-day list on mobile rather than 7-col grid */
+    .planner-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .planner-corner, .planner-day-header, .planner-slot-label { display: none; }
+
+    .planner-day-card {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .planner-day-card-header {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .planner-day-card-header .total-mini {
+      font-family: 'Fraunces', serif;
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .planner-slot-row {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .planner-slot-row-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-faded);
+      display: flex;
+      align-items: center;
+    }
+    .planner-cell { min-height: 54px; }
+
+    .planner-week-total {
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 16px 18px;
+    }
+    .planner-week-total-label { grid-column: 1 / -1; }
+
+    .view-toggle { top: 12px; right: 14px; padding: 7px 12px; font-size: 9px; }
+  }
+
   /* "Start a timer" button in recipe header */
   .timer-start-btn {
     background: transparent;
@@ -1460,7 +1988,7 @@
 
     <div class="sidebar-content">
       <div class="brand">
-        <div class="brand-mark">Volume 01 · build 14</div>
+        <div class="brand-mark">Volume 01 · build 15</div>
         <div class="brand-title">David's Dishes</div>
         <div class="brand-sub">a private collection</div>
       </div>
@@ -1483,6 +2011,29 @@
   </aside>
 
   <main class="main" id="main"></main>
+
+  <button class="view-toggle" id="viewToggle" onclick="toggleView()" title="Switch between recipes and planner">Planner</button>
+</div>
+
+<div class="picker-modal" id="pickerModal">
+  <div class="picker-panel">
+    <div class="picker-title">Add a meal</div>
+    <div class="picker-sub" id="pickerSub">Tap a recipe to add</div>
+    <ul class="picker-list" id="pickerList"></ul>
+    <button class="picker-close" onclick="closePicker()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="weekShoppingModal">
+  <div class="week-shopping-modal">
+    <h2>Weekly shopping list</h2>
+    <div class="sub" id="weekShoppingSub">All planned meals combined</div>
+    <ul id="weekShoppingList"></ul>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeWeekShopping()">Close</button>
+      <button class="btn btn-primary" onclick="copyWeekShopping()">Copy to clipboard</button>
+    </div>
+  </div>
 </div>
 
 <div class="timer-popover" id="timerPopover">
@@ -1985,7 +2536,7 @@
     }
 
     listEl.innerHTML = filtered.map((r, i) => `
-      <div class="recipe-item ${r.id === activeId ? 'active' : ''}" onclick="selectRecipe('${r.id}')">
+      <div class="recipe-item ${r.id === activeId ? 'active' : ''}" draggable="true" data-recipe-id="${r.id}" onclick="selectRecipe('${r.id}')" ondragstart="onRecipeDragStart(event, '${r.id}')" ondragend="onRecipeDragEnd(event)">
         <div class="recipe-item-num">№ ${String(i + 1).padStart(2, '0')}</div>
         <div class="recipe-item-title">${r.titlePlain}</div>
         <div class="recipe-item-meta">${r.servings} serves · ${r.time} min${r.calories ? ' · ' + r.calories + ' kcal' : ''}</div>
@@ -2166,6 +2717,430 @@
           </div>` : ''}
       </article>
     `;
+  }
+
+  function onRecipeDragStart(event, recipeId) {
+    event.dataTransfer.setData('text/plain', recipeId);
+    event.dataTransfer.effectAllowed = 'copy';
+    event.currentTarget.classList.add('dragging');
+  }
+
+  function onRecipeDragEnd(event) {
+    event.currentTarget.classList.remove('dragging');
+  }
+
+  // === Planner ===
+  let currentView = 'recipes'; // 'recipes' | 'planner'
+  let plan = {}; // { 'mon-breakfast': [{ recipeId, portions }], ... }
+  const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const DAY_LABELS = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+  const SLOTS = ['breakfast', 'lunch', 'dinner'];
+  const SLOT_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+
+  async function loadPlan() {
+    try {
+      const r = await storage.get('weekly-plan');
+      if (r && r.value) plan = JSON.parse(r.value);
+    } catch (e) { plan = {}; }
+  }
+  async function savePlan() {
+    try { await storage.set('weekly-plan', JSON.stringify(plan)); } catch (e) {}
+  }
+
+  function cellKey(day, slot) { return day + '-' + slot; }
+
+  function toggleView() {
+    currentView = currentView === 'recipes' ? 'planner' : 'recipes';
+    const btn = document.getElementById('viewToggle');
+    btn.textContent = currentView === 'recipes' ? 'Planner' : 'Recipes';
+    btn.classList.toggle('active', currentView === 'planner');
+    if (currentView === 'planner') renderPlanner();
+    else renderMain();
+  }
+
+  function recipeMacros(recipeId, portions) {
+    const r = recipes.find(x => x.id === recipeId);
+    if (!r) return { kcal: 0, p: 0, c: 0, f: 0 };
+    const scale = portions / r.servings;
+    return {
+      kcal: (r.calories || 0) * portions,
+      p: (r.protein || 0) * portions,
+      c: (r.carbs || 0) * portions,
+      f: (r.fat || 0) * portions
+    };
+  }
+
+  function dayTotals(day) {
+    const totals = { kcal: 0, p: 0, c: 0, f: 0 };
+    SLOTS.forEach(slot => {
+      const meals = plan[cellKey(day, slot)] || [];
+      meals.forEach(m => {
+        const t = recipeMacros(m.recipeId, m.portions);
+        totals.kcal += t.kcal;
+        totals.p += t.p;
+        totals.c += t.c;
+        totals.f += t.f;
+      });
+    });
+    return totals;
+  }
+
+  function weekTotals() {
+    const totals = { kcal: 0, p: 0, c: 0, f: 0 };
+    DAYS.forEach(d => {
+      const dt = dayTotals(d);
+      totals.kcal += dt.kcal;
+      totals.p += dt.p;
+      totals.c += dt.c;
+      totals.f += dt.f;
+    });
+    return totals;
+  }
+
+  function renderPlanner() {
+    const main = document.getElementById('main');
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const wt = weekTotals();
+    const anyPlanned = Object.values(plan).some(arr => arr && arr.length > 0);
+
+    let gridHTML;
+    if (isMobile) {
+      // Mobile: one card per day, slots stacked inside
+      gridHTML = '<div class="planner-grid">' + DAYS.map(day => {
+        const dt = dayTotals(day);
+        const slotRows = SLOTS.map(slot => {
+          return '<div class="planner-slot-row">' +
+            '<div class="planner-slot-row-label">' + SLOT_LABELS[slot] + '</div>' +
+            renderCell(day, slot) +
+            '</div>';
+        }).join('');
+        return `
+          <div class="planner-day-card">
+            <div class="planner-day-card-header">
+              <span>${DAY_LABELS[day]}</span>
+              <span class="total-mini">${Math.round(dt.kcal)} kcal · ${Math.round(dt.p)}p / ${Math.round(dt.c)}c / ${Math.round(dt.f)}f</span>
+            </div>
+            ${slotRows}
+          </div>
+        `;
+      }).join('') + '</div>';
+    } else {
+      // Desktop: 7-day grid
+      const headerRow = '<div class="planner-corner"></div>' + DAYS.map(d =>
+        `<div class="planner-day-header">${DAY_LABELS[d]}</div>`
+      ).join('');
+
+      const slotRows = SLOTS.map(slot => {
+        return '<div class="planner-slot-label">' + SLOT_LABELS[slot] + '</div>' +
+          DAYS.map(day => renderCell(day, slot)).join('');
+      }).join('');
+
+      // Totals row
+      const totalsRow = '<div class="planner-slot-label" style="color:var(--ink);">Total</div>' +
+        DAYS.map(day => {
+          const dt = dayTotals(day);
+          if (dt.kcal === 0) return '<div class="planner-day-total">—</div>';
+          return `
+            <div class="planner-day-total">
+              <span class="planner-day-total-kcal">${Math.round(dt.kcal)}<small> kcal</small></span>
+              ${Math.round(dt.p)}p / ${Math.round(dt.c)}c / ${Math.round(dt.f)}f
+            </div>
+          `;
+        }).join('');
+
+      gridHTML = `<div class="planner-grid">${headerRow}${slotRows}${totalsRow}</div>`;
+    }
+
+    main.innerHTML = `
+      <div class="planner">
+        <div class="planner-header">
+          <div class="planner-title-block">
+            <div class="planner-eyebrow">Week ahead</div>
+            <h1 class="planner-title">Meal plan</h1>
+            <div class="planner-sub">Drag recipes from the sidebar onto a slot, or tap an empty slot on mobile.</div>
+          </div>
+          <div class="planner-actions">
+            <button class="planner-btn secondary" onclick="clearPlan()" ${!anyPlanned ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>Clear week</button>
+            <button class="planner-btn" onclick="openWeekShopping()" ${!anyPlanned ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>Shopping list</button>
+          </div>
+        </div>
+
+        ${gridHTML}
+
+        ${anyPlanned ? `
+          <div class="planner-week-total">
+            <div class="planner-week-total-label">Week total</div>
+            <div class="planner-week-total-item">
+              <span class="v">${Math.round(wt.kcal)}<small>kcal</small></span>
+              <div class="l">Calories</div>
+            </div>
+            <div class="planner-week-total-item">
+              <span class="v">${Math.round(wt.p)}<small>g</small></span>
+              <div class="l">Protein</div>
+            </div>
+            <div class="planner-week-total-item">
+              <span class="v">${Math.round(wt.c)}<small>g</small></span>
+              <div class="l">Carbs</div>
+            </div>
+            <div class="planner-week-total-item">
+              <span class="v">${Math.round(wt.f)}<small>g</small></span>
+              <div class="l">Fat</div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    attachCellDropHandlers();
+  }
+
+  function renderCell(day, slot) {
+    const key = cellKey(day, slot);
+    const meals = plan[key] || [];
+    const isEmpty = meals.length === 0;
+    const mealsHTML = meals.map((m, i) => {
+      const r = recipes.find(x => x.id === m.recipeId);
+      if (!r) return '';
+      return `
+        <div class="planner-meal">
+          <div class="planner-meal-title">${r.titlePlain}</div>
+          <div class="planner-meal-meta">
+            <button class="planner-meal-portions" onclick="changePortions('${key}', ${i}, event)">${m.portions} ${m.portions === 1 ? 'serving' : 'servings'}</button>
+            <span>${Math.round((r.calories || 0) * m.portions)} kcal</span>
+          </div>
+          <button class="planner-meal-remove" onclick="removeMeal('${key}', ${i}, event)" title="Remove">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="planner-cell ${isEmpty ? 'empty' : ''}" data-key="${key}" onclick="onCellClick('${key}', event)">${mealsHTML}</div>`;
+  }
+
+  function attachCellDropHandlers() {
+    document.querySelectorAll('.planner-cell').forEach(cell => {
+      cell.addEventListener('dragover', e => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+      cell.addEventListener('drop', async e => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        const recipeId = e.dataTransfer.getData('text/plain');
+        if (!recipeId) return;
+        await addMealToCell(cell.dataset.key, recipeId);
+      });
+    });
+  }
+
+  async function addMealToCell(key, recipeId, portions) {
+    const r = recipes.find(x => x.id === recipeId);
+    if (!r) return;
+    const p = portions || Math.min(2, r.servings); // default 2 servings or whatever recipe makes
+    if (!plan[key]) plan[key] = [];
+    plan[key].push({ recipeId: recipeId, portions: p });
+    await savePlan();
+    renderPlanner();
+  }
+
+  async function removeMeal(key, idx, event) {
+    if (event) event.stopPropagation();
+    if (!plan[key]) return;
+    plan[key].splice(idx, 1);
+    if (plan[key].length === 0) delete plan[key];
+    await savePlan();
+    renderPlanner();
+  }
+
+  async function changePortions(key, idx, event) {
+    if (event) event.stopPropagation();
+    if (!plan[key] || !plan[key][idx]) return;
+    const current = plan[key][idx].portions;
+    const v = prompt('How many servings?', String(current));
+    if (v === null) return;
+    const n = parseFloat(v);
+    if (isNaN(n) || n <= 0) return;
+    plan[key][idx].portions = n;
+    await savePlan();
+    renderPlanner();
+  }
+
+  async function clearPlan() {
+    if (!confirm('Clear the entire week?')) return;
+    plan = {};
+    await savePlan();
+    renderPlanner();
+  }
+
+  // Cell click: open picker on mobile (no drag), or do nothing on desktop empty cell
+  let pickerTargetKey = null;
+  function onCellClick(key, event) {
+    // Only respond if the click is on the cell itself or its empty pseudo, not a child meal
+    if (event.target.closest('.planner-meal')) return;
+    if (event.target.closest('.planner-meal-portions')) return;
+    if (event.target.closest('.planner-meal-remove')) return;
+    pickerTargetKey = key;
+    openPicker();
+  }
+
+  function openPicker() {
+    const sub = document.getElementById('pickerSub');
+    if (pickerTargetKey) {
+      const [day, slot] = pickerTargetKey.split('-');
+      sub.textContent = DAY_LABELS[day] + ' · ' + SLOT_LABELS[slot];
+    }
+    const list = document.getElementById('pickerList');
+    list.innerHTML = recipes.map(r => `
+      <li class="picker-item" onclick="pickRecipe('${r.id}')">
+        <div class="picker-item-title">${r.titlePlain}</div>
+        <div class="picker-item-meta">${r.servings} serves · ${r.calories || '—'} kcal · ${(r.tags || []).slice(0, 2).join(', ')}</div>
+      </li>
+    `).join('');
+    document.getElementById('pickerModal').classList.add('show');
+  }
+
+  function closePicker() {
+    document.getElementById('pickerModal').classList.remove('show');
+    pickerTargetKey = null;
+  }
+
+  async function pickRecipe(recipeId) {
+    if (!pickerTargetKey) return;
+    await addMealToCell(pickerTargetKey, recipeId);
+    closePicker();
+  }
+
+  // Re-render planner on resize between mobile and desktop breakpoints
+  let lastMobile = window.matchMedia('(max-width: 768px)').matches;
+  window.addEventListener('resize', () => {
+    if (currentView !== 'planner') return;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile !== lastMobile) {
+      lastMobile = isMobile;
+      renderPlanner();
+    }
+  });
+
+  // === Weekly shopping list ===
+  // Merges buildShoppingList output across all planned meals.
+  function buildWeekShoppingList() {
+    const map = {};
+    DAYS.forEach(day => {
+      SLOTS.forEach(slot => {
+        const meals = plan[cellKey(day, slot)] || [];
+        meals.forEach(m => {
+          const r = recipes.find(x => x.id === m.recipeId);
+          if (!r) return;
+          const scale = m.portions / r.servings;
+          const items = buildShoppingList(r, scale);
+          items.forEach(item => {
+            const parts = item.amount.split(' + ');
+            parts.forEach(p => {
+              const trimmed = p.trim();
+              if (trimmed === '—') return;
+              const numUnit = trimmed.match(/^([\d.]+)\s*(g|ml|tbsp|tsp|cup|cups|handful|handfuls)$/);
+              if (numUnit) {
+                const amt = parseFloat(numUnit[1]);
+                const unit = numUnit[2].replace(/s$/, '');
+                // Combine tsp into tbsp at the merge step (1 tbsp = 3 tsp)
+                if (unit === 'tsp') {
+                  const key = item.name + '|tbsp';
+                  if (!map[key]) map[key] = { name: item.name, amount: 0, unit: 'tbsp' };
+                  map[key].amount += amt / 3;
+                } else {
+                  const key = item.name + '|' + unit;
+                  if (!map[key]) map[key] = { name: item.name, amount: 0, unit: unit };
+                  map[key].amount += amt;
+                }
+              } else {
+                const n = parseInt(trimmed);
+                if (!isNaN(n)) {
+                  const key = item.name + '|whole';
+                  if (!map[key]) map[key] = { name: item.name, amount: 0, unit: 'whole' };
+                  map[key].amount += n;
+                }
+              }
+            });
+          });
+        });
+      });
+    });
+
+    // Merge "whole" and "g" entries for the same name where possible.
+    // Onions: assume 1 medium onion ≈ 150g.
+    const ONION_G = 150;
+    Object.keys(map).forEach(k => {
+      if (!k.endsWith('|whole')) return;
+      const name = k.slice(0, -6);
+      if (!/onion/.test(name.toLowerCase())) return;
+      const gKey = name + '|g';
+      if (map[gKey]) {
+        map[gKey].amount += map[k].amount * ONION_G;
+        delete map[k];
+      }
+    });
+
+    // Format
+    return Object.values(map).map(entry => {
+      let display;
+      if (entry.unit === 'g' || entry.unit === 'ml') {
+        display = roundGrams(entry.amount) + entry.unit;
+      } else if (entry.unit === 'tbsp') {
+        // If small, render as tsp; otherwise tbsp.
+        if (entry.amount < 1) {
+          const tsp = Math.max(0.5, Math.round(entry.amount * 3 * 2) / 2);
+          display = tsp + ' tsp';
+        } else {
+          const n = Math.round(entry.amount * 2) / 2;
+          display = n + ' tbsp';
+        }
+      } else if (entry.unit === 'cup') {
+        const n = Math.round(entry.amount * 4) / 4;
+        display = n + ' cup' + (n > 1 ? 's' : '');
+      } else if (entry.unit === 'handful') {
+        const n = Math.max(1, Math.round(entry.amount));
+        display = n + ' handful' + (n > 1 ? 's' : '');
+      } else {
+        display = String(Math.max(1, Math.ceil(entry.amount)));
+      }
+      return { amount: display, name: entry.name };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function openWeekShopping() {
+    const list = buildWeekShoppingList();
+    const ul = document.getElementById('weekShoppingList');
+    if (list.length === 0) {
+      ul.innerHTML = '<li style="color:var(--ink-faded);justify-content:center;">No meals planned yet.</li>';
+    } else {
+      ul.innerHTML = list.map(i =>
+        '<li><span class="amt">' + i.amount + '</span><span class="nm">' + i.name + '</span></li>'
+      ).join('');
+    }
+    // Count meals for the subtitle
+    let mealCount = 0;
+    Object.values(plan).forEach(arr => mealCount += (arr || []).length);
+    document.getElementById('weekShoppingSub').textContent = mealCount + ' meal' + (mealCount === 1 ? '' : 's') + ' planned';
+    document.getElementById('weekShoppingModal').classList.add('show');
+  }
+
+  function closeWeekShopping() {
+    document.getElementById('weekShoppingModal').classList.remove('show');
+  }
+
+  async function copyWeekShopping() {
+    const list = buildWeekShoppingList();
+    if (list.length === 0) return;
+    const text = list.map(i => i.amount + '  ' + i.name).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = event.target;
+      const original = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (e) {
+      alert('Copy failed. Long-press the text to copy manually.');
+    }
   }
 
   function countIngredients(recipe) {
@@ -2885,6 +3860,7 @@
           renderSidebar();
           renderMain();
         }
+        await loadPlan();
       } catch (e) {
         console.error('Storage load failed, using seeds:', e);
       }
