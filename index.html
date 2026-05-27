@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Kitchen Ledger</title>
+<title>David's Dishes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,800&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -712,6 +712,69 @@
     overflow-wrap: break-word;
   }
 
+  .shopping {
+    margin-top: 32px;
+    padding: 24px 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  .shopping-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .shopping-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .shopping-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 28px;
+  }
+
+  @media (min-width: 700px) {
+    .shopping-list { grid-template-columns: 1fr 1fr; }
+  }
+
+  .shopping-item {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: 14px;
+  }
+
+  .shopping-item:last-child { border-bottom: none; }
+
+  .shopping-amount {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    min-width: 70px;
+    font-size: 14px;
+  }
+
+  .shopping-name {
+    color: var(--ink-soft);
+    flex: 1;
+  }
+
   .empty {
     display: flex;
     flex-direction: column;
@@ -1002,8 +1065,8 @@
 
     <div class="sidebar-content">
       <div class="brand">
-        <div class="brand-mark">Volume 01 · build 11</div>
-        <div class="brand-title">The Kitchen Ledger</div>
+        <div class="brand-mark">Volume 01 · build 12</div>
+        <div class="brand-title">David's Dishes</div>
         <div class="brand-sub">a private collection</div>
       </div>
 
@@ -1625,6 +1688,23 @@
           </section>
         </div>
 
+        ${(() => {
+          const list = buildShoppingList(recipe, scale);
+          if (!list || list.length === 0) return '';
+          return `
+          <div class="shopping">
+            <div class="shopping-label">Shopping list</div>
+            <ul class="shopping-list">
+              ${list.map(item => `
+                <li class="shopping-item">
+                  <span class="shopping-amount">${item.amount}</span>
+                  <span class="shopping-name">${item.name}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>`;
+        })()}
+
         ${recipe.substitutes && recipe.substitutes.length > 0 ? `
           <div class="subs">
             <div class="subs-label">Swap it out</div>
@@ -1650,6 +1730,150 @@
 
   function countIngredients(recipe) {
     return recipe.ingredientGroups.reduce((sum, g) => sum + g.items.length, 0);
+  }
+
+  // Build a consolidated shopping list from all ingredient groups.
+  // - Merges duplicate ingredients (sums grams, ml, tbsp, tsp by unit).
+  // - Converts measured citrus juice/zest into whole fruits (1 lemon = ~45ml juice).
+  // - Counts whole-item ingredients (garlic cloves, onions, eggs).
+  // - Filters out "to taste" / cosmetic items already implied (salt, pepper, water).
+  function buildShoppingList(recipe, scale) {
+    const items = []; // { key, displayName, amounts: { unit: number } }
+    const map = {};
+
+    function normalise(name) {
+      // Strip parenthetical notes and trailing qualifiers for grouping
+      return name
+        .toLowerCase()
+        .replace(/\([^)]*\)/g, '')
+        .replace(/,.*$/, '')
+        .replace(/\bfreshly\b|\btoasted\b|\bminced\b|\bgrated\b|\bcrumbled\b|\bsliced\b|\bdiced\b|\bchopped\b|\brinsed\b|\bcubed\b|\bquartered\b|\bhalved\b|\bthinly\b|\bfinely\b|\bdry\b|\bhot\b/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function addItem(key, displayName, unit, amount) {
+      if (!map[key]) {
+        map[key] = { displayName, amounts: {} };
+        items.push(map[key]);
+      }
+      map[key].amounts[unit] = (map[key].amounts[unit] || 0) + amount;
+    }
+
+    recipe.ingredientGroups.forEach(g => {
+      g.items.forEach(item => {
+        const name = (item.name || '').trim();
+        if (!name) return;
+
+        const nameLower = name.toLowerCase();
+        const normalisedName = normalise(name);
+        const unit = (item.unit || '').toLowerCase();
+        const rawAmount = parseFloat(item.amount);
+        const amount = isNaN(rawAmount) ? 0 : rawAmount * scale;
+
+        // Skip water and seasoning-level items already in most kitchens
+        if (/^water$/.test(normalisedName)) return;
+        if (/^salt$/.test(normalisedName) || /^black pepper$/.test(normalisedName) || /^pepper$/.test(normalisedName)) return;
+
+        // Lemon juice / lemon zest / lemon wedge => whole lemons
+        // 1 medium lemon yields ~45ml juice and enough zest. A wedge = 1/4 lemon.
+        if (/lemon (juice|zest|wedge)|^lemon,? juiced|lemon,? to squeeze/.test(nameLower)) {
+          let lemonsNeeded = 0;
+          if (unit === 'ml') lemonsNeeded = amount / 45;
+          else if (unit === 'tbsp') lemonsNeeded = amount / 3; // ~3 tbsp per lemon
+          else if (unit === 'tsp') lemonsNeeded = amount / 9;
+          else if (/wedge/.test(nameLower)) lemonsNeeded = amount * 0.25;
+          else if (/zest/.test(nameLower)) lemonsNeeded = Math.max(amount, 1) * 0.5; // a zest = half a lemon's worth
+          else lemonsNeeded = amount; // "1 lemon, juiced"
+          addItem('lemon', 'lemons', 'whole', lemonsNeeded);
+          return;
+        }
+
+        // "half a lemon, juiced" or "1/2 lemon" — handled by item.amount as 0.5
+        if (/^lemon$/.test(normalisedName) || /^lemons?$/.test(normalisedName)) {
+          addItem('lemon', 'lemons', 'whole', amount || 1);
+          return;
+        }
+
+        // Garlic: minced garlic in tbsp vs whole garlic cloves
+        // 1 garlic clove ≈ 1 tsp minced. 1 tbsp minced = 3 cloves.
+        if (/garlic/.test(nameLower) && !/garlic powder/.test(nameLower)) {
+          let cloves = 0;
+          if (unit === 'tbsp') cloves = amount * 3;
+          else if (unit === 'tsp') cloves = amount;
+          else if (/clove/.test(nameLower) || unit === '' || !unit) cloves = amount;
+          else cloves = amount;
+          addItem('garlic', 'garlic cloves', 'whole', cloves);
+          return;
+        }
+
+        // Onions: combine red onion separate from yellow/white onion separate from spring
+        // Exclude onion powder which is a dried spice.
+        let onionKey = null;
+        if (/onion powder/.test(nameLower)) {
+          // Falls through to default handling as a spice
+        } else if (/red onion/.test(nameLower)) onionKey = 'red onions';
+        else if (/spring onion/.test(nameLower)) onionKey = 'spring onions';
+        else if (/yellow onion|white onion|brown onion|^onion/.test(nameLower)) onionKey = 'onions';
+        if (onionKey) {
+          if (unit === 'g') addItem(onionKey, onionKey, 'g', amount);
+          else addItem(onionKey, onionKey, 'whole', amount);
+          return;
+        }
+
+        // Default: group by normalised name and unit
+        const key = normalisedName + '|' + unit;
+        // Use the original first-seen display name, stripped of qualifiers
+        const display = name.replace(/\([^)]*\)/g, '').replace(/,.*$/, '').trim();
+        if (unit === 'handful') {
+          addItem(normalisedName, display, 'handful', amount || 1);
+        } else if (unit === 'g' || unit === 'ml' || unit === 'tbsp' || unit === 'tsp' || unit === 'cup' || unit === 'cups') {
+          addItem(normalisedName, display, unit, amount);
+        } else {
+          // No/unknown unit: treat as whole item count
+          addItem(normalisedName, display, 'whole', amount || 1);
+        }
+      });
+    });
+
+    // Format each item to a display string
+    return items.map(it => {
+      const parts = [];
+      const a = it.amounts;
+      let displayName = it.displayName;
+
+      if (a.g) parts.push(roundGrams(a.g) + 'g');
+      if (a.ml) parts.push(roundGrams(a.ml) + 'ml');
+      if (a.tbsp) {
+        const n = Math.round(a.tbsp * 2) / 2;
+        parts.push((Number.isInteger(n) ? n : n) + ' tbsp');
+      }
+      if (a.tsp) {
+        const n = Math.round(a.tsp * 2) / 2;
+        parts.push((Number.isInteger(n) ? n : n) + ' tsp');
+      }
+      if (a.cup) {
+        const n = Math.round(a.cup * 4) / 4;
+        parts.push(n + ' cup' + (n > 1 ? 's' : ''));
+      }
+      if (a.cups) {
+        const n = Math.round(a.cups * 4) / 4;
+        parts.push(n + ' cup' + (n > 1 ? 's' : ''));
+      }
+      if (a.handful) {
+        const n = Math.max(1, Math.round(a.handful));
+        parts.push(n + ' handful' + (n > 1 ? 's' : ''));
+      }
+      if (a.whole) {
+        const n = Math.max(1, Math.ceil(a.whole));
+        parts.push(n);
+      }
+
+      return {
+        amount: parts.join(' + ') || '—',
+        name: displayName
+      };
+    });
   }
 
   function scaleAmount(amount, scale) {
@@ -1913,7 +2137,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'kitchen-ledger-recipes.json';
+    a.download = 'davids-dishes-recipes.json';
     a.click();
     URL.revokeObjectURL(url);
   }
