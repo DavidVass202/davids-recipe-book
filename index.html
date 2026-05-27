@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Kitchen Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,800&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4ede1;
+    --bg-card: #fbf6ec;
+    --ink: #1f1a14;
+    --ink-soft: #5a4f3f;
+    --ink-faded: #8a7d6a;
+    --accent: #c5462a;
+    --accent-deep: #8e2f1c;
+    --olive: #6b7341;
+    --olive-deep: #4a5028;
+    --gold: #c89b3c;
+    --line: #d9cdb8;
+    --carb: #c89b3c;
+    --protein: #c5462a;
+    --fat: #6b7341;
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Inter Tight', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    overflow: hidden;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(197, 70, 42, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(107, 115, 65, 0.05) 0%, transparent 50%);
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    height: 100vh;
+    transition: grid-template-columns 0.3s ease;
+  }
+
+  .app.collapsed { grid-template-columns: var(--sidebar-collapsed-width) 1fr; }
+
+  .sidebar {
+    background: var(--bg-card);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sidebar-toggle {
+    position: absolute;
+    top: 18px;
+    right: 12px;
+    z-index: 10;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-soft);
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .sidebar-toggle:hover {
+    background: var(--ink);
+    color: var(--bg-card);
+    border-color: var(--ink);
+  }
+
+  .app.collapsed .sidebar-toggle { right: 50%; transform: translateX(50%); }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.2s;
+  }
+
+  .app.collapsed .sidebar-content { opacity: 0; pointer-events: none; }
+
+  .brand {
+    padding: 22px 22px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 6px;
+  }
+
+  .brand-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--ink-faded);
+    margin-top: 4px;
+  }
+
+  .search {
+    padding: 14px 22px 8px;
+    position: relative;
+  }
+
+  .search input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    padding: 6px 0 6px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search input:focus { border-bottom-color: var(--accent); }
+  .search input::placeholder { color: var(--ink-faded); }
+
+  .search::before {
+    content: '⌕';
+    position: absolute;
+    left: 22px;
+    top: 17px;
+    color: var(--ink-faded);
+    font-size: 16px;
+  }
+
+  .tags {
+    padding: 10px 22px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .tag-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tag-chip:hover { border-color: var(--ink-soft); }
+  .tag-chip.active {
+    background: var(--ink);
+    color: var(--bg-card);
+    border-color: var(--ink);
+  }
+
+  .recipe-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+
+  .recipe-list::-webkit-scrollbar { width: 4px; }
+  .recipe-list::-webkit-scrollbar-track { background: transparent; }
+  .recipe-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  .recipe-item {
+    padding: 12px 22px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .recipe-item:hover { background: rgba(197, 70, 42, 0.04); }
+  .recipe-item.active {
+    border-left-color: var(--accent);
+    background: rgba(197, 70, 42, 0.06);
+  }
+
+  .recipe-item-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faded);
+    letter-spacing: 0.1em;
+  }
+
+  .recipe-item-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.25;
+    margin-top: 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .recipe-item-meta {
+    font-size: 10px;
+    color: var(--ink-faded);
+    margin-top: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .sidebar-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn-add {
+    flex: 1;
+    background: var(--ink);
+    color: var(--bg-card);
+    border: none;
+    padding: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-add:hover { background: var(--accent); }
+
+  .btn-export {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 9px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-export:hover {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+  }
+
+  .main {
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
+
+  .recipe {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 72px 100px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .recipe-header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 32px;
+    margin-bottom: 36px;
+    position: relative;
+  }
+
+  .recipe-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 14px;
+  }
+
+  .recipe-eyebrow::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .recipe-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 56px;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+
+  .recipe-description {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 620px;
+    margin-bottom: 28px;
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+  }
+
+  .recipe-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding-top: 4px;
+  }
+
+  .stat {
+    border-left: 2px solid var(--ink);
+    padding-left: 12px;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .stat-value small {
+    font-size: 12px;
+    color: var(--ink-faded);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
+  .macros {
+    margin-top: 24px;
+    padding: 18px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  .macros-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .macros-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+  }
+
+  .macros-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faded);
+    letter-spacing: 0.05em;
+  }
+
+  .macros-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .macro {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .macro-bar {
+    height: 5px;
+    background: rgba(0,0,0,0.06);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .macro-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.5s ease;
+  }
+
+  .macro-carb .macro-bar-fill { background: var(--carb); }
+  .macro-protein .macro-bar-fill { background: var(--protein); }
+  .macro-fat .macro-bar-fill { background: var(--fat); }
+
+  .macro-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  .macro-values {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .macro-grams {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .macro-grams small {
+    font-size: 11px;
+    color: var(--ink-faded);
+    font-weight: 400;
+  }
+
+  .macro-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faded);
+    letter-spacing: 0.05em;
+  }
+
+  .servings-control {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    padding: 16px 20px;
+    margin-bottom: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 2px;
+  }
+
+  .servings-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .servings-buttons {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .serv-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--line);
+    background: transparent;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .serv-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .serv-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .serv-count {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  .recipe-body {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 52px;
+  }
+
+  .section-heading {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .section-heading .count { color: var(--ink-faded); }
+
+  .ing-group { margin-bottom: 24px; }
+
+  .ing-group-title {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .ing-list { list-style: none; }
+
+  .ing-item {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: 14px;
+  }
+
+  .ing-item:last-child { border-bottom: none; }
+
+  .ing-amount {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    min-width: 70px;
+    font-size: 14px;
+  }
+
+  .ing-name {
+    color: var(--ink-soft);
+    flex: 1;
+  }
+
+  .step { margin-bottom: 28px; }
+
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 32px;
+    color: var(--ink-faded);
+    line-height: 1;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .step-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 17px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  .step-body {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.65;
+  }
+
+  .step-body strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .notes {
+    margin-top: 52px;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, rgba(107, 115, 65, 0.08), rgba(200, 155, 60, 0.06));
+    border-left: 3px solid var(--olive);
+    border-radius: 2px;
+  }
+
+  .notes-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--olive-deep);
+    margin-bottom: 10px;
+  }
+
+  .notes-body {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  /* SUBSTITUTES */
+  .subs {
+    margin-top: 32px;
+    padding: 24px 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  .subs-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .subs-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .subs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px 28px;
+  }
+
+  @media (min-width: 700px) {
+    .subs-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .sub-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.4fr);
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    border-bottom: 1px dotted var(--line);
+  }
+
+  .sub-item:last-child { border-bottom: none; }
+
+  .sub-from {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--ink);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .sub-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  .sub-to {
+    color: var(--ink-soft);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+    color: var(--ink-faded);
+  }
+
+  .empty-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 110px;
+    color: var(--line);
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+
+  .empty p {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+  }
+
+  .recipe-tags {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .recipe-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    background: var(--ink);
+    color: var(--bg-card);
+    border-radius: 100px;
+  }
+
+  .recipe-tag.olive { background: var(--olive); }
+  .recipe-tag.gold { background: var(--gold); color: var(--ink); }
+
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 26, 20, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-bg.show { display: flex; }
+
+  .modal {
+    background: var(--bg-card);
+    width: 90%;
+    max-width: 720px;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 36px;
+    border-radius: 4px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+
+  .modal h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .modal p.modal-sub {
+    color: var(--ink-faded);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .form-field { margin-bottom: 14px; }
+
+  .form-field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    width: 100%;
+    background: white;
+    border: 1px solid var(--line);
+    padding: 9px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-field input:focus,
+  .form-field textarea:focus,
+  .form-field select:focus {
+    border-color: var(--accent);
+  }
+
+  .form-field textarea {
+    min-height: 80px;
+    resize: vertical;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .form-field .hint {
+    font-size: 11px;
+    color: var(--ink-faded);
+    margin-top: 4px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+
+  .btn {
+    padding: 9px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary { background: var(--ink); color: var(--bg-card); }
+  .btn-primary:hover { background: var(--accent); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--line);
+  }
+
+  .btn-secondary:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--accent);
+    margin-right: auto;
+  }
+
+  .btn-danger:hover { background: var(--accent); color: white; }
+
+  .recipe-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+  .loading {
+    padding: 40px;
+    text-align: center;
+    color: var(--ink-faded);
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 200;
+    width: 42px;
+    height: 42px;
+    background: var(--ink);
+    color: var(--bg-card);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  }
+
+  .mobile-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 26, 20, 0.5);
+    z-index: 40;
+    backdrop-filter: blur(2px);
+  }
+
+  @media (max-width: 768px) {
+    .app, .app.collapsed { grid-template-columns: 1fr; }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+
+    /* On mobile, the drawer is always full-content. Ignore any collapsed state. */
+    .app.collapsed .sidebar-content { opacity: 1; pointer-events: auto; }
+
+    .app.mobile-open .sidebar { transform: translateX(0); }
+    .app.mobile-open .mobile-backdrop { display: block; }
+
+    .sidebar-toggle { display: none; }
+    .mobile-menu-btn { display: flex; }
+
+    .recipe-body { grid-template-columns: 1fr; gap: 30px; }
+    .recipe { padding: 64px 22px 80px; }
+    .recipe-title { font-size: 38px; }
+    .recipe-stats { grid-template-columns: repeat(2, 1fr); }
+    .macros-grid { grid-template-columns: 1fr; gap: 12px; }
+    .subs-grid { gap: 8px; }
+    .recipe-actions { top: 4px; right: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button>
+  <div class="mobile-backdrop" id="mobileBackdrop"></div>
+
+  <aside class="sidebar">
+    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+
+    <div class="sidebar-content">
+      <div class="brand">
+        <div class="brand-mark">Volume 01 · build 11</div>
+        <div class="brand-title">The Kitchen Ledger</div>
+        <div class="brand-sub">a private collection</div>
+      </div>
+
+      <div class="search">
+        <input type="text" id="searchInput" placeholder="Search...">
+      </div>
+
+      <div class="tags" id="tagFilters"></div>
+
+      <div class="recipe-list" id="recipeList">
+        <div class="loading">Loading...</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-add" onclick="openModal()">+ New</button>
+        <button class="btn-export" onclick="exportData()" title="Export all">↓</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">New Recipe</h2>
+    <p class="modal-sub">Add a recipe. Use one ingredient per line.</p>
+
+    <div class="form-field">
+      <label>Title</label>
+      <input type="text" id="f-title" placeholder="e.g. Mediterranean Tray Bake">
+    </div>
+
+    <div class="form-field">
+      <label>Description</label>
+      <input type="text" id="f-description" placeholder="A short line about the dish">
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Servings</label>
+        <input type="number" id="f-servings" value="4" min="1">
+      </div>
+      <div class="form-field">
+        <label>Total time (minutes)</label>
+        <input type="number" id="f-time" value="40" min="1">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Calories per serving</label>
+        <input type="number" id="f-calories" placeholder="kcal">
+      </div>
+      <div class="form-field">
+        <label>Tags (comma separated)</label>
+        <input type="text" id="f-tags" placeholder="mediterranean, high-protein, one-pan">
+      </div>
+    </div>
+
+    <div class="form-row-3">
+      <div class="form-field">
+        <label>Protein (g) / serving</label>
+        <input type="number" id="f-protein" placeholder="g" step="0.1">
+      </div>
+      <div class="form-field">
+        <label>Carbs (g) / serving</label>
+        <input type="number" id="f-carbs" placeholder="g" step="0.1">
+      </div>
+      <div class="form-field">
+        <label>Fat (g) / serving</label>
+        <input type="number" id="f-fat" placeholder="g" step="0.1">
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label>Ingredients</label>
+      <textarea id="f-ingredients" placeholder="One per line. Group with headings ending in a colon:&#10;Tray:&#10;1kg chicken thighs&#10;250g baby tomatoes&#10;Marinade:&#10;2 tbsp olive oil"></textarea>
+      <div class="hint">Lines ending in ":" become group headings.</div>
+    </div>
+
+    <div class="form-field">
+      <label>Method</label>
+      <textarea id="f-method" placeholder="One step per line. Format: Title | Description&#10;Marinate | Whisk the marinade. Toss with chicken. Rest 30 minutes."></textarea>
+      <div class="hint">Use "Title | Body" to split heading from description.</div>
+    </div>
+
+    <div class="form-field">
+      <label>Substitutes (optional)</label>
+      <textarea id="f-substitutes" placeholder="One per line. Format: Ingredient -> Replacement&#10;Orzo -> New potatoes or couscous&#10;Feta -> Halloumi" style="min-height: 60px;"></textarea>
+      <div class="hint">Use "Ingredient -> Replacement" to add a swap.</div>
+    </div>
+
+    <div class="form-field">
+      <label>Notes (optional)</label>
+      <textarea id="f-notes" placeholder="Tips, variations, leftovers..." style="min-height: 50px;"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteRecipe()" style="display:none;">Delete</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Surface any JS error visibly instead of hanging
+  window.onerror = function(msg, src, line) {
+    var el = document.getElementById('recipeList');
+    if (el) el.innerHTML = '<div style="padding:30px 22px;color:#c5462a;font-size:12px;">Error: ' + msg + ' (line ' + line + ')</div>';
+    return false;
+  };
+
+  const MACRO_TARGET = { carbs: 45, protein: 30, fat: 25 };
+
+  const SEED_RECIPES = [
+    {
+      id: 'med-tray-bake',
+      titlePlain: 'Mediterranean Tray Bake',
+      description: 'Lemony, paprika-warmed chicken thighs over jammy tomatoes, courgettes and peppers, finished with orzo cooked right in the tray. One pan, big sun-drenched flavour.',
+      servings: 6,
+      time: 60,
+      calories: 650,
+      protein: 50,
+      carbs: 70,
+      fat: 18,
+      tags: ['mediterranean', 'high-protein', 'one-pan'],
+      ingredientGroups: [
+        {
+          name: 'Tray',
+          items: [
+            { amount: '1000', unit: 'g', name: 'chicken thighs' },
+            { amount: '360', unit: 'g', name: 'orzo (dry weight)' },
+            { amount: '900', unit: 'ml', name: 'chicken stock, hot' },
+            { amount: '250', unit: 'g', name: 'baby tomatoes' },
+            { amount: '200', unit: 'g', name: 'sweet mini peppers, sliced roughly (or normal peppers)' },
+            { amount: '3', unit: '', name: 'small red onions, chopped' },
+            { amount: '2', unit: '', name: 'courgettes, cut into rounds' },
+            { amount: '1', unit: 'tbsp', name: 'mixed herbs' },
+            { amount: '1', unit: 'tbsp', name: 'smoked paprika' },
+            { amount: '4', unit: '', name: 'whole garlic cloves' },
+            { amount: '50', unit: 'g', name: 'feta, crumbled' },
+            { amount: '1', unit: 'handful', name: 'kalamata olives' },
+            { amount: '1', unit: 'handful', name: 'freshly chopped parsley' }
+          ]
+        },
+        {
+          name: 'Marinade',
+          items: [
+            { amount: '2', unit: 'tbsp', name: 'olive oil' },
+            { amount: '50', unit: 'ml', name: 'lemon juice' },
+            { amount: '1', unit: 'tbsp', name: 'minced garlic' },
+            { amount: '1', unit: 'tbsp', name: 'smoked paprika' },
+            { amount: '1', unit: 'tsp', name: 'grated lemon zest' },
+            { amount: '1', unit: 'tbsp', name: 'oregano' }
+          ]
+        }
+      ],
+      method: [
+        { title: 'Marinate the chicken', body: 'In a large bowl, whisk the marinade ingredients with a good pinch of salt and pepper. Add the chicken thighs, turn to coat, and leave to rest for at least <strong>30 minutes</strong>, or overnight in the fridge if you have the time.' },
+        { title: 'Heat the oven', body: 'Preheat to <strong>200°C fan</strong> (220°C conventional). Pull out a large roasting tray.' },
+        { title: 'Build the tray', body: 'Tip the onions, courgettes, peppers and whole garlic cloves into the tray. Drizzle with a little olive oil, scatter the mixed herbs and smoked paprika, and toss to coat. Spread out in a single layer.' },
+        { title: 'Add the chicken', body: 'Nestle the marinated chicken thighs skin-side up among the vegetables. Pour over any leftover marinade.' },
+        { title: 'First roast', body: 'Roast for <strong>30 minutes</strong> until the chicken skin is starting to colour and the vegetables are softening.' },
+        { title: 'Add orzo and finish', body: 'Scatter the orzo around the chicken, pour over the hot stock, and add the baby tomatoes and olives. Return to the oven for <strong>15 to 20 minutes</strong>, until the orzo is tender and most of the liquid is absorbed, the chicken is golden and cooked through, and the tomatoes are blistered.' },
+        { title: 'Finish and serve', body: 'Crumble the feta over the hot tray, scatter generously with fresh parsley, and bring straight to the table. A spoonful of yoghurt on the side is excellent.' }
+      ],
+      notes: 'Leftovers keep beautifully for 2 days in the fridge. Reheat gently, or shred the chicken into a grain bowl with the roasted vegetables, a little extra lemon and fresh parsley.',
+      substitutes: [
+        { from: '360g orzo', to: '600g new potatoes (cubed, parboil 8 min) or 300g couscous (stir in last 5 min)' },
+        { from: '1000g chicken thighs', to: '800g chicken breast (reduce roast time by 10 min) or 900g firm white fish (add for last 15 min only)' },
+        { from: '50g feta', to: '80g halloumi (cubed, scattered on for the last 10 min)' },
+        { from: '400g courgettes', to: '400g aubergine, 400g fennel wedges, or 350g asparagus' },
+        { from: '250g baby tomatoes', to: '250g quartered larger tomatoes, or 80g sun-dried tomatoes for deeper flavour' },
+        { from: '50g kalamata olives', to: '50g green olives, 30g capers, or skip if not a fan' },
+        { from: '1 tbsp smoked paprika', to: '1 tbsp sweet paprika + pinch chipotle, or 1 tbsp harissa paste in the marinade' },
+        { from: '15g parsley', to: '15g fresh mint, dill, or basil' }
+      ]
+    },
+    {
+      id: 'gochujang-honey-chicken',
+      titlePlain: 'Gochujang Honey Chicken with Sesame Slaw',
+      description: 'Sticky, spicy-sweet gochujang chicken roasted until lacquered, served over jasmine rice with a sharp sesame and kewpie slaw. A weeknight Korean-style bowl.',
+      servings: 4,
+      time: 55,
+      calories: 640,
+      protein: 49,
+      carbs: 74,
+      fat: 15,
+      tags: ['korean', 'high-protein', 'weeknight'],
+      ingredientGroups: [
+        {
+          name: 'Chicken',
+          items: [
+            { amount: '700', unit: 'g', name: 'chicken breast, boneless skinless, cut into thick strips' }
+          ]
+        },
+        {
+          name: 'Marinade',
+          items: [
+            { amount: '2', unit: 'tbsp', name: 'gochujang' },
+            { amount: '2', unit: 'tbsp', name: 'soy sauce' },
+            { amount: '2', unit: 'tbsp', name: 'honey' },
+            { amount: '0.5', unit: 'tsp', name: 'sesame oil' },
+            { amount: '1', unit: 'tsp', name: 'apple cider vinegar' }
+          ]
+        },
+        {
+          name: 'Rice',
+          items: [
+            { amount: '280', unit: 'g', name: 'jasmine rice (dry)' },
+            { amount: '560', unit: 'ml', name: 'water' }
+          ]
+        },
+        {
+          name: 'Sesame slaw',
+          items: [
+            { amount: '250', unit: 'g', name: 'white cabbage, finely shredded' },
+            { amount: '80', unit: 'g', name: 'red onion, finely sliced (about 1 small)' },
+            { amount: '3', unit: 'tbsp', name: 'kewpie mayo' },
+            { amount: '1', unit: 'tbsp', name: 'roasted sesame kewpie mayo' },
+            { amount: '1', unit: 'tbsp', name: 'soy sauce' },
+            { amount: '1', unit: 'tbsp', name: 'apple cider vinegar' },
+            { amount: '1', unit: 'tbsp', name: 'sesame seeds, toasted' },
+            { amount: '1', unit: '', name: 'lemon wedge, to squeeze' }
+          ]
+        }
+      ],
+      method: [
+        { title: 'Marinate the chicken', body: 'In a bowl, whisk together the gochujang, soy sauce, honey, sesame oil and apple cider vinegar. Add the chicken, toss to coat thoroughly, and rest for at least <strong>30 minutes</strong>, or overnight in the fridge for deeper flavour.' },
+        { title: 'Heat the oven', body: 'Preheat to <strong>190°C fan</strong> (210°C conventional). Line a baking tray with parchment.' },
+        { title: 'Cook the rice', body: 'Rinse the rice under cold water until it runs clear. Combine with the water in a saucepan with a pinch of salt. Bring to a boil, then cover, reduce to a bare simmer, and cook for <strong>12 minutes</strong>. Rest off the heat, lid on, for another <strong>10 minutes</strong>.' },
+        { title: 'Roast the chicken', body: 'Spread the marinated chicken on the lined tray in a single layer, scraping over any extra marinade. Roast for <strong>20 minutes</strong>, until the chicken is sticky, lacquered, and cooked through.' },
+        { title: 'Make the slaw', body: 'While the chicken roasts, combine the cabbage and red onion in a bowl. Whisk the kewpie mayo, sesame kewpie mayo, soy sauce, apple cider vinegar and sesame seeds in a small bowl. Tip over the cabbage, squeeze over the lemon wedge, and toss well.' },
+        { title: 'Serve', body: 'Fluff the rice and divide between bowls. Top with the chicken and any sticky pan juices. Pile the sesame slaw alongside, and finish with extra sesame seeds if you like.' }
+      ],
+      notes: 'The marinade can sit overnight for even better flavour. For extra heat, drizzle a little extra gochujang thinned with water over the finished bowls. Leftovers reheat well in a hot pan with a splash of water to loosen the glaze.',
+      substitutes: [
+        { from: '700g chicken breast', to: '800g chicken thigh boneless skinless (richer, more flavour, slightly more fat) or 800g firm tofu (pressed and cubed)' },
+        { from: '280g jasmine rice', to: '260g short grain rice, 280g basmati, or 320g quinoa (rinse well)' },
+        { from: '2 tbsp gochujang', to: '1 tbsp sriracha + 1 tsp white miso, or 2 tbsp Korean chili paste' },
+        { from: '2 tbsp honey', to: '2 tbsp maple syrup, or 2 tbsp brown sugar loosened with 1 tsp water' },
+        { from: '3 tbsp kewpie mayo', to: '3 tbsp regular mayo + pinch sugar + pinch MSG, or 3 tbsp Greek yogurt + 1 tsp honey for a leaner slaw' },
+        { from: '1 tbsp roasted sesame kewpie mayo', to: '1 tbsp kewpie + 1 tsp extra toasted sesame seeds, or 1 tbsp tahini thinned with water' },
+        { from: '250g cabbage', to: '250g napa cabbage, savoy, or pre-shredded slaw mix' },
+        { from: '80g red onion', to: '4 spring onions, finely sliced, or 80g white onion' }
+      ]
+    },
+    {
+      id: 'middle-eastern-chicken-rice',
+      titlePlain: 'Middle Eastern Chicken & Turmeric Rice',
+      description: 'Spice-rubbed chicken thighs with fragrant turmeric basmati, a sharp sumac salad and a cool garlic yogurt sauce. Halal-cart energy, made on the stovetop.',
+      servings: 4,
+      time: 60,
+      calories: 660,
+      protein: 48,
+      carbs: 72,
+      fat: 20,
+      tags: ['middle-eastern', 'high-protein', 'one-pan'],
+      ingredientGroups: [
+        {
+          name: 'Chicken',
+          items: [
+            { amount: '800', unit: 'g', name: 'chicken thighs, boneless skinless' },
+            { amount: '1', unit: 'tbsp', name: 'olive oil' },
+            { amount: '8', unit: '', name: 'garlic cloves, minced' },
+            { amount: '0.5', unit: '', name: 'lemon, juiced' },
+            { amount: '2', unit: 'tsp', name: 'Better Than Bouillon roasted chicken base' },
+            { amount: '1', unit: 'tbsp', name: 'paprika' },
+            { amount: '1', unit: 'tbsp', name: 'cumin' },
+            { amount: '1', unit: 'tbsp', name: 'onion powder' },
+            { amount: '2', unit: 'tsp', name: 'turmeric' },
+            { amount: '2', unit: 'tsp', name: 'coriander' },
+            { amount: '2', unit: 'tsp', name: 'black pepper' },
+            { amount: '1', unit: 'tsp', name: 'allspice' },
+            { amount: '1', unit: 'tsp', name: 'salt' }
+          ]
+        },
+        {
+          name: 'Turmeric rice',
+          items: [
+            { amount: '1', unit: 'tbsp', name: 'butter' },
+            { amount: '220', unit: 'g', name: 'yellow onion, diced (about 1.5 cups)' },
+            { amount: '1', unit: 'tbsp', name: 'turmeric' },
+            { amount: '2', unit: 'tsp', name: 'paprika' },
+            { amount: '2', unit: 'tsp', name: 'garlic powder' },
+            { amount: '2', unit: 'tsp', name: 'black pepper' },
+            { amount: '300', unit: 'g', name: 'basmati rice (dry), rinsed' },
+            { amount: '600', unit: 'ml', name: 'hot water' },
+            { amount: '3', unit: 'tsp', name: 'Better Than Bouillon roasted chicken base' }
+          ]
+        },
+        {
+          name: 'Sumac salad',
+          items: [
+            { amount: '80', unit: 'g', name: 'red onion, thinly sliced (about half a large)' },
+            { amount: '200', unit: 'g', name: 'cherry tomatoes, quartered' },
+            { amount: '200', unit: 'g', name: 'cucumber, sliced and halved' },
+            { amount: '2', unit: 'tsp', name: 'sumac' },
+            { amount: '1', unit: 'tsp', name: 'salt' },
+            { amount: '1', unit: 'tsp', name: 'black pepper' },
+            { amount: '0.5', unit: 'tsp', name: 'lemon, juiced' }
+          ]
+        },
+        {
+          name: 'Garlic yogurt sauce',
+          items: [
+            { amount: '80', unit: 'g', name: 'plain Greek yogurt' },
+            { amount: '1', unit: 'tbsp', name: 'mayonnaise' },
+            { amount: '3', unit: '', name: 'garlic cloves, grated' },
+            { amount: '1', unit: 'tbsp', name: 'fresh parsley, finely chopped' },
+            { amount: '0.5', unit: '', name: 'lemon, juiced' },
+            { amount: '1', unit: 'tsp', name: 'salt' },
+            { amount: '1', unit: 'tsp', name: 'black pepper' }
+          ]
+        }
+      ],
+      method: [
+        { title: 'Marinate the chicken', body: 'In a bowl, combine the chicken with all the chicken spices, olive oil, minced garlic, lemon juice and Better Than Bouillon. Mix well to coat. Marinate for at least <strong>30 minutes</strong>, or up to overnight in the fridge.' },
+        { title: 'Sear the chicken', body: 'Heat a large pan over medium-high with a drizzle of olive oil. Working in batches so the pan stays hot, cook the chicken for <strong>6 to 8 minutes per side</strong>, until deeply golden and cooked through. Set aside on a plate, loosely covered.' },
+        { title: 'Start the rice', body: 'Reduce the heat to medium-low and add the butter to the same pan, scraping up any sticky bits. Add the diced onion and cook, stirring often, for <strong>5 to 7 minutes</strong> until soft and translucent.' },
+        { title: 'Toast the spices and rice', body: 'Stir in the turmeric, paprika, garlic powder and pepper, and cook for <strong>1 to 2 minutes</strong> until fragrant. Add the rinsed basmati and toast, stirring, for <strong>2 minutes</strong>.' },
+        { title: 'Cook the rice', body: 'Stir the Better Than Bouillon into the hot water, then pour into the pan. Bring to a boil, stir once, then cover and reduce to low. Simmer for <strong>15 minutes</strong>, then rest off the heat, lid on, for <strong>10 minutes</strong>. Fluff with a fork.' },
+        { title: 'Make the sumac salad', body: 'Combine the red onion, cherry tomatoes and cucumber in a bowl. Sprinkle over the sumac, salt and pepper, squeeze on the lemon juice, and toss well.' },
+        { title: 'Make the garlic sauce', body: 'Whisk together the Greek yogurt, mayonnaise, grated garlic, parsley, lemon juice, salt and pepper until smooth. Loosen with a splash of water if needed.' },
+        { title: 'Serve', body: 'Slice or leave the chicken whole. Pile rice into bowls, top with chicken, spoon the sumac salad alongside, and drizzle generously with the garlic sauce.' }
+      ],
+      notes: 'Marinate the chicken the night before for the deepest flavour. The rice reheats beautifully with a splash of water and a knob of butter. If you have it, a pinch of cinnamon in the rice with the spices adds lovely warmth.',
+      substitutes: [
+        { from: '800g chicken thighs', to: '800g chicken breast (leaner, reduce sear time by 2 min), or 700g firm tofu pressed and cubed' },
+        { from: '300g basmati rice', to: '300g jasmine rice, 280g long-grain white rice, or 320g couscous (steam separately)' },
+        { from: '2 tsp Better Than Bouillon (chicken)', to: '1 chicken stock cube crumbled, 1 tbsp white miso, or 200ml chicken stock (reduce water accordingly)' },
+        { from: '80g Greek yogurt', to: '80g labneh, 80g sour cream, or 60g full-fat mayo (richer, fattier sauce)' },
+        { from: '1 tbsp mayonnaise', to: '1 tbsp tahini (nuttier), or skip and add 1 extra tbsp yogurt for leaner sauce' },
+        { from: '2 tsp sumac', to: '1 tsp lemon zest + 1 tsp paprika, or 1 tsp pomegranate molasses drizzled over the salad' },
+        { from: '200g cherry tomatoes', to: '200g vine tomatoes, deseeded and chopped, or 150g sun-dried tomatoes (sliced)' },
+        { from: '200g cucumber', to: '200g radish, thinly sliced, or 150g pickled cucumbers for tang' }
+      ]
+    }
+  ];
+
+  let recipes = [];
+  let activeId = null;
+  let activeServings = 4;
+  let searchQuery = '';
+  let activeTag = null;
+  let editingId = null;
+  let sidebarCollapsed = false;
+
+  // Storage wrapper: uses localStorage for standalone use (phones, browsers),
+  // falls back to in-memory if localStorage is blocked.
+  const memoryStore = {};
+  const hasLocalStorage = (() => {
+    try {
+      const t = '__test__';
+      localStorage.setItem(t, t);
+      localStorage.removeItem(t);
+      return true;
+    } catch (e) { return false; }
+  })();
+  const storage = {
+    async get(key) {
+      try {
+        if (hasLocalStorage) {
+          const v = localStorage.getItem(key);
+          return v !== null ? { key, value: v } : null;
+        }
+        return key in memoryStore ? { key, value: memoryStore[key] } : null;
+      } catch (e) { return null; }
+    },
+    async set(key, value) {
+      try {
+        if (hasLocalStorage) localStorage.setItem(key, value);
+        else memoryStore[key] = value;
+        return { key, value };
+      } catch (e) {
+        memoryStore[key] = value;
+        return { key, value };
+      }
+    }
+  };
+
+  const SEED_VERSION = 7;
+
+  async function loadRecipes() {
+    try {
+      const versionResult = await storage.get('seed-version');
+      const savedVersion = versionResult && versionResult.value ? parseInt(versionResult.value) : 0;
+
+      const result = await storage.get('all-recipes');
+      if (result && result.value && savedVersion >= SEED_VERSION) {
+        recipes = JSON.parse(result.value);
+        return;
+      }
+
+      // Either no saved recipes, or seed has been updated. Merge: keep user-added recipes, refresh seeded ones.
+      if (result && result.value) {
+        const existing = JSON.parse(result.value);
+        const seedIds = SEED_RECIPES.map(r => r.id);
+        const userAdded = existing.filter(r => !seedIds.includes(r.id));
+        recipes = [...SEED_RECIPES, ...userAdded];
+      } else {
+        recipes = SEED_RECIPES;
+      }
+    } catch (e) {
+      recipes = SEED_RECIPES;
+    }
+    await saveAllRecipes();
+    try {
+      await storage.set('seed-version', String(SEED_VERSION));
+    } catch (e) {}
+  }
+
+  async function saveAllRecipes() {
+    try {
+      await storage.set('all-recipes', JSON.stringify(recipes));
+    } catch (e) {
+      console.error('Save failed:', e);
+    }
+  }
+
+  async function loadSidebarState() {
+    try {
+      const result = await storage.get('sidebar-collapsed');
+      if (result && result.value) {
+        sidebarCollapsed = result.value === 'true';
+      }
+    } catch (e) {}
+  }
+
+  async function saveSidebarState() {
+    try {
+      await storage.set('sidebar-collapsed', String(sidebarCollapsed));
+    } catch (e) {
+      console.error('Sidebar state save failed:', e);
+    }
+  }
+
+  function calcMacroPercents(recipe) {
+    const { protein, carbs, fat } = recipe;
+    if (!protein || !carbs || !fat) {
+      return { carb: null, protein: null, fat: null };
+    }
+    const carbCals = carbs * 4;
+    const protCals = protein * 4;
+    const fatCals = fat * 9;
+    const total = carbCals + protCals + fatCals;
+    return {
+      carb: Math.round((carbCals / total) * 100),
+      protein: Math.round((protCals / total) * 100),
+      fat: Math.round((fatCals / total) * 100)
+    };
+  }
+
+  function renderSidebar() {
+    const tagSet = new Set();
+    recipes.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)));
+    const tags = [...tagSet];
+
+    const tagsEl = document.getElementById('tagFilters');
+    tagsEl.innerHTML = tags.map(t =>
+      `<button class="tag-chip ${activeTag === t ? 'active' : ''}" onclick="toggleTag('${t.replace(/'/g, "\\'")}')">${t}</button>`
+    ).join('');
+
+    const filtered = recipes.filter(r => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q ||
+        r.titlePlain.toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.tags || []).some(t => t.toLowerCase().includes(q));
+      const matchesTag = !activeTag || (r.tags || []).includes(activeTag);
+      return matchesSearch && matchesTag;
+    });
+
+    const listEl = document.getElementById('recipeList');
+    if (filtered.length === 0) {
+      listEl.innerHTML = `<div style="padding: 30px 22px; color: var(--ink-faded); font-size: 13px;">No recipes match.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map((r, i) => `
+      <div class="recipe-item ${r.id === activeId ? 'active' : ''}" onclick="selectRecipe('${r.id}')">
+        <div class="recipe-item-num">№ ${String(i + 1).padStart(2, '0')}</div>
+        <div class="recipe-item-title">${r.titlePlain}</div>
+        <div class="recipe-item-meta">${r.servings} serves · ${r.time} min${r.calories ? ' · ' + r.calories + ' kcal' : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderMain() {
+    const main = document.getElementById('main');
+    const recipe = recipes.find(r => r.id === activeId);
+
+    if (!recipe) {
+      main.innerHTML = `
+        <div class="empty">
+          <div class="empty-mark">℘</div>
+          <p>Select a recipe, or add one.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const scale = activeServings / recipe.servings;
+    const macros = calcMacroPercents(recipe);
+
+    const tagHTML = (recipe.tags || []).map((t, i) => {
+      const cls = i === 0 ? '' : (i === 1 ? 'olive' : 'gold');
+      return `<span class="recipe-tag ${cls}">${t}</span>`;
+    }).join('');
+
+    const ingredientsHTML = recipe.ingredientGroups.map(g => `
+      <div class="ing-group">
+        ${recipe.ingredientGroups.length > 1 && g.name ? `<div class="ing-group-title">${g.name}</div>` : ''}
+        <ul class="ing-list">
+          ${g.items.map(item => {
+            const scaledAmount = scaleAmount(item.amount, scale);
+            const display = item.unit ? `${scaledAmount} ${item.unit}` : scaledAmount;
+            return `<li class="ing-item">
+              <span class="ing-amount">${display}</span>
+              <span class="ing-name">${item.name}</span>
+            </li>`;
+          }).join('')}
+        </ul>
+      </div>
+    `).join('');
+
+    const methodHTML = recipe.method.map((step, i) => `
+      <div class="step">
+        <span class="step-num">${String(i + 1).padStart(2, '0')}</span>
+        <div class="step-title">${step.title}</div>
+        <div class="step-body">${step.body}</div>
+      </div>
+    `).join('');
+
+    const hasMacros = recipe.protein && recipe.carbs && recipe.fat;
+
+    const macrosHTML = hasMacros ? `
+      <div class="macros">
+        <div class="macros-header">
+          <span class="macros-label">Macros per serving</span>
+          <span class="macros-target">Target ${MACRO_TARGET.carbs}/${MACRO_TARGET.protein}/${MACRO_TARGET.fat}</span>
+        </div>
+        <div class="macros-grid">
+          <div class="macro macro-carb">
+            <div class="macro-name">Carbs</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width:${macros.carb}%"></div></div>
+            <div class="macro-values">
+              <span class="macro-grams">${recipe.carbs}<small>g</small></span>
+              <span class="macro-pct">${macros.carb}%</span>
+            </div>
+          </div>
+          <div class="macro macro-protein">
+            <div class="macro-name">Protein</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width:${macros.protein}%"></div></div>
+            <div class="macro-values">
+              <span class="macro-grams">${recipe.protein}<small>g</small></span>
+              <span class="macro-pct">${macros.protein}%</span>
+            </div>
+          </div>
+          <div class="macro macro-fat">
+            <div class="macro-name">Fat</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width:${macros.fat}%"></div></div>
+            <div class="macro-values">
+              <span class="macro-grams">${recipe.fat}<small>g</small></span>
+              <span class="macro-pct">${macros.fat}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    main.innerHTML = `
+      <article class="recipe">
+        <div class="recipe-header">
+          <div class="recipe-actions">
+            <button class="icon-btn" onclick="editRecipe('${recipe.id}')" title="Edit">✎</button>
+          </div>
+          <div class="recipe-eyebrow">Recipe № ${String(recipes.findIndex(r => r.id === recipe.id) + 1).padStart(2, '0')}</div>
+          <div class="recipe-tags">${tagHTML}</div>
+          <h1 class="recipe-title">${recipe.titlePlain}</h1>
+          ${recipe.description ? `<p class="recipe-description">${recipe.description}</p>` : ''}
+          <div class="recipe-stats">
+            <div class="stat">
+              <div class="stat-label">Time</div>
+              <div class="stat-value">${recipe.time}<small>min</small></div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Serves</div>
+              <div class="stat-value">${activeServings}</div>
+            </div>
+            ${recipe.calories ? `
+              <div class="stat">
+                <div class="stat-label">Per serving</div>
+                <div class="stat-value">${recipe.calories}<small>kcal</small></div>
+              </div>` : ''}
+          </div>
+          ${macrosHTML}
+        </div>
+
+        <div class="servings-control">
+          <span class="servings-label">Scale recipe</span>
+          <div class="servings-buttons">
+            <button class="serv-btn" onclick="changeServings(-1)" ${activeServings <= 1 ? 'disabled' : ''}>−</button>
+            <span class="serv-count">${activeServings}</span>
+            <button class="serv-btn" onclick="changeServings(1)">+</button>
+          </div>
+        </div>
+
+        <div class="recipe-body">
+          <section>
+            <div class="section-heading">Ingredients <span class="count">${countIngredients(recipe)}</span></div>
+            ${ingredientsHTML}
+          </section>
+          <section>
+            <div class="section-heading">Method <span class="count">${String(recipe.method.length).padStart(2, '0')} steps</span></div>
+            ${methodHTML}
+          </section>
+        </div>
+
+        ${recipe.substitutes && recipe.substitutes.length > 0 ? `
+          <div class="subs">
+            <div class="subs-label">Swap it out</div>
+            <div class="subs-grid">
+              ${recipe.substitutes.map(s => `
+                <div class="sub-item">
+                  <span class="sub-from">${scaleSubstituteText(s.from, scale)}</span>
+                  <span class="sub-arrow">→</span>
+                  <span class="sub-to">${scaleSubstituteText(s.to, scale)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
+
+        ${recipe.notes ? `
+          <div class="notes">
+            <div class="notes-label">Notes from the cook</div>
+            <p class="notes-body">${recipe.notes}</p>
+          </div>` : ''}
+      </article>
+    `;
+  }
+
+  function countIngredients(recipe) {
+    return recipe.ingredientGroups.reduce((sum, g) => sum + g.items.length, 0);
+  }
+
+  function scaleAmount(amount, scale) {
+    if (amount === '1' && scale === 1) return amount;
+    const num = parseFloat(amount);
+    if (isNaN(num)) return amount;
+    const result = num * scale;
+    if (Number.isInteger(result)) return String(result);
+    if (result < 1) return result.toFixed(2).replace(/\.?0+$/, '');
+    return result.toFixed(1).replace(/\.0$/, '');
+  }
+
+  function roundGrams(g) {
+    if (g <= 0) return 0;
+    if (g < 30) return Math.round(g / 5) * 5;
+    if (g < 300) return Math.round(g / 10) * 10;
+    return Math.round(g / 50) * 50;
+  }
+
+  function scaleSubstituteText(text, scale) {
+    if (scale === 1) return text;
+    return text.replace(/(~?)(\d+(?:\.\d+)?)\s*(kg|g|ml|l|tbsp|tsp|cup|cups)\b/gi, (match, tilde, numStr, unit) => {
+      const num = parseFloat(numStr);
+      const unitLower = unit.toLowerCase();
+      let scaled = num * scale;
+      let outUnit = unitLower;
+
+      // Convert kg to g and l to ml per project preferences
+      if (unitLower === 'kg') { scaled *= 1000; outUnit = 'g'; }
+      else if (unitLower === 'l') { scaled *= 1000; outUnit = 'ml'; }
+
+      let display;
+      if (outUnit === 'g' || outUnit === 'ml') {
+        display = roundGrams(scaled);
+      } else {
+        // tbsp, tsp, cup - round to nearest quarter
+        const rounded = Math.round(scaled * 4) / 4;
+        display = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+      }
+
+      return tilde + display + outUnit;
+    });
+  }
+
+  function selectRecipe(id) {
+    activeId = id;
+    const r = recipes.find(x => x.id === id);
+    activeServings = r.servings;
+    renderSidebar();
+    renderMain();
+    // Close mobile drawer when picking a recipe
+    document.getElementById('app').classList.remove('mobile-open');
+    // Scroll main back to top
+    document.getElementById('main').scrollTop = 0;
+  }
+
+  function changeServings(delta) {
+    activeServings = Math.max(1, activeServings + delta);
+    renderMain();
+  }
+
+  function toggleTag(tag) {
+    activeTag = activeTag === tag ? null : tag;
+    renderSidebar();
+  }
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    renderSidebar();
+  });
+
+  document.getElementById('sidebarToggle').addEventListener('click', async () => {
+    sidebarCollapsed = !sidebarCollapsed;
+    applySidebarState();
+    await saveSidebarState();
+  });
+
+  // Mobile drawer wiring
+  document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+    document.getElementById('app').classList.toggle('mobile-open');
+  });
+  document.getElementById('mobileBackdrop').addEventListener('click', function() {
+    document.getElementById('app').classList.remove('mobile-open');
+  });
+
+  function applySidebarState() {
+    const app = document.getElementById('app');
+    const toggle = document.getElementById('sidebarToggle');
+    if (sidebarCollapsed) {
+      app.classList.add('collapsed');
+      toggle.textContent = '›';
+    } else {
+      app.classList.remove('collapsed');
+      toggle.textContent = '‹';
+    }
+  }
+
+  function openModal(id = null) {
+    editingId = id;
+    const modal = document.getElementById('modal');
+    const titleEl = document.getElementById('modalTitle');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    if (id) {
+      const r = recipes.find(x => x.id === id);
+      titleEl.textContent = 'Edit Recipe';
+      deleteBtn.style.display = 'inline-block';
+      document.getElementById('f-title').value = r.titlePlain;
+      document.getElementById('f-description').value = r.description || '';
+      document.getElementById('f-servings').value = r.servings;
+      document.getElementById('f-time').value = r.time;
+      document.getElementById('f-calories').value = r.calories || '';
+      document.getElementById('f-protein').value = r.protein || '';
+      document.getElementById('f-carbs').value = r.carbs || '';
+      document.getElementById('f-fat').value = r.fat || '';
+      document.getElementById('f-tags').value = (r.tags || []).join(', ');
+      document.getElementById('f-ingredients').value = ingredientsToText(r.ingredientGroups);
+      document.getElementById('f-method').value = methodToText(r.method);
+      document.getElementById('f-substitutes').value = substitutesToText(r.substitutes || []);
+      document.getElementById('f-notes').value = r.notes || '';
+    } else {
+      titleEl.textContent = 'New Recipe';
+      deleteBtn.style.display = 'none';
+      ['f-title','f-description','f-calories','f-protein','f-carbs','f-fat','f-tags','f-ingredients','f-method','f-substitutes','f-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-servings').value = 4;
+      document.getElementById('f-time').value = 40;
+    }
+
+    modal.classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+  }
+
+  function editRecipe(id) { openModal(id); }
+
+  async function deleteRecipe() {
+    if (!editingId) return;
+    if (!confirm('Delete this recipe?')) return;
+    recipes = recipes.filter(r => r.id !== editingId);
+    if (activeId === editingId) {
+      activeId = recipes[0] ? recipes[0].id : null;
+      activeServings = recipes[0] ? recipes[0].servings : 4;
+    }
+    await saveAllRecipes();
+    closeModal();
+    renderSidebar();
+    renderMain();
+  }
+
+  function ingredientsToText(groups) {
+    return groups.map(g => {
+      const header = g.name ? g.name + ':\n' : '';
+      const items = g.items.map(i => {
+        const amt = i.unit ? `${i.amount}${i.unit === 'handful' ? ' ' : ''}${i.unit}` : i.amount;
+        return `${amt} ${i.name}`;
+      }).join('\n');
+      return header + items;
+    }).join('\n');
+  }
+
+  function methodToText(method) {
+    return method.map(s => `${s.title} | ${s.body.replace(/<strong>|<\/strong>|<em>|<\/em>/g, '')}`).join('\n');
+  }
+
+  function parseIngredients(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const groups = [];
+    let current = { name: '', items: [] };
+
+    lines.forEach(line => {
+      if (line.endsWith(':')) {
+        if (current.items.length > 0) groups.push(current);
+        current = { name: line.slice(0, -1), items: [] };
+      } else {
+        const match = line.match(/^([\d./]+)\s*(g|kg|ml|l|tbsp|tsp|cup|cups|handful|whole|small|medium|large)?\s+(.+)$/i);
+        if (match) {
+          current.items.push({
+            amount: match[1],
+            unit: (match[2] || '').toLowerCase(),
+            name: match[3]
+          });
+        } else {
+          current.items.push({ amount: '', unit: '', name: line });
+        }
+      }
+    });
+
+    if (current.items.length > 0) groups.push(current);
+    if (groups.length === 0) groups.push({ name: '', items: [] });
+    return groups;
+  }
+
+  function parseMethod(text) {
+    return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const idx = line.indexOf('|');
+      if (idx === -1) {
+        return { title: 'Step', body: line };
+      }
+      return {
+        title: line.slice(0, idx).trim(),
+        body: line.slice(idx + 1).trim()
+      };
+    });
+  }
+
+  function parseSubstitutes(text) {
+    return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const match = line.match(/^(.+?)\s*(?:->|→|=>)\s*(.+)$/);
+      if (match) {
+        return { from: match[1].trim(), to: match[2].trim() };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  function substitutesToText(subs) {
+    return subs.map(s => `${s.from} -> ${s.to}`).join('\n');
+  }
+
+  async function saveRecipe() {
+    const title = document.getElementById('f-title').value.trim();
+    if (!title) { alert('Please add a title'); return; }
+
+    const data = {
+      id: editingId || 'r-' + Date.now(),
+      titlePlain: title,
+      description: document.getElementById('f-description').value.trim(),
+      servings: parseInt(document.getElementById('f-servings').value) || 4,
+      time: parseInt(document.getElementById('f-time').value) || 40,
+      calories: parseInt(document.getElementById('f-calories').value) || null,
+      protein: parseFloat(document.getElementById('f-protein').value) || null,
+      carbs: parseFloat(document.getElementById('f-carbs').value) || null,
+      fat: parseFloat(document.getElementById('f-fat').value) || null,
+      tags: document.getElementById('f-tags').value.split(',').map(t => t.trim()).filter(Boolean),
+      ingredientGroups: parseIngredients(document.getElementById('f-ingredients').value),
+      method: parseMethod(document.getElementById('f-method').value),
+      substitutes: parseSubstitutes(document.getElementById('f-substitutes').value),
+      notes: document.getElementById('f-notes').value.trim()
+    };
+
+    if (editingId) {
+      const idx = recipes.findIndex(r => r.id === editingId);
+      recipes[idx] = data;
+    } else {
+      recipes.push(data);
+    }
+
+    activeId = data.id;
+    activeServings = data.servings;
+    await saveAllRecipes();
+    closeModal();
+    renderSidebar();
+    renderMain();
+  }
+
+  function exportData() {
+    const json = JSON.stringify(recipes, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kitchen-ledger-recipes.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  (async function init() {
+    try {
+      recipes = SEED_RECIPES.slice();
+      activeId = recipes[0] ? recipes[0].id : null;
+      activeServings = recipes[0] ? recipes[0].servings : 4;
+
+      try {
+        var s = localStorage.getItem('sidebar-collapsed');
+        if (s) sidebarCollapsed = s === 'true';
+      } catch (e) {}
+      applySidebarState();
+
+      renderSidebar();
+      renderMain();
+
+      try {
+        await loadRecipes();
+        if (recipes && recipes.length > 0) {
+          if (!recipes.find(function(r){ return r.id === activeId; })) {
+            activeId = recipes[0].id;
+            activeServings = recipes[0].servings;
+          }
+          renderSidebar();
+          renderMain();
+        }
+      } catch (e) {
+        console.error('Storage load failed, using seeds:', e);
+      }
+    } catch (e) {
+      var el = document.getElementById('recipeList');
+      if (el) el.innerHTML = '<div style="padding:30px 22px;color:#c5462a;font-size:12px;">Init error: ' + e.message + '</div>';
+    }
+  })();
+</script>
+
+</body>
+</html>
