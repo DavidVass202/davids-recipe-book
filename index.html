@@ -1988,7 +1988,7 @@
 
     <div class="sidebar-content">
       <div class="brand">
-        <div class="brand-mark">Volume 01 · build 17</div>
+        <div class="brand-mark">Volume 01 · build 18</div>
         <div class="brand-title">David's Dishes</div>
         <div class="brand-sub">a private collection</div>
       </div>
@@ -3469,58 +3469,70 @@
   document.addEventListener('click', primeAudio, { once: true });
   document.addEventListener('keydown', primeAudio, { once: true });
 
-  function playBeep(ctx, freq, startTime, duration, volume) {
-    const osc = ctx.createOscillator();
+  function playBell(ctx, freq, startTime, duration, volume) {
+    // Bell-like tone: a sine wave with harmonics and a long, soft decay
+    const fundamental = ctx.createOscillator();
+    const harmonic = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'square'; // brasher, more alarm-like than sine
-    osc.frequency.setValueAtTime(freq, startTime);
+    const harmonicGain = ctx.createGain();
+
+    fundamental.type = 'sine';
+    fundamental.frequency.setValueAtTime(freq, startTime);
+
+    // Add a quieter higher harmonic for warmth (like a real bell)
+    harmonic.type = 'sine';
+    harmonic.frequency.setValueAtTime(freq * 2.5, startTime);
+    harmonicGain.gain.setValueAtTime(volume * 0.15, startTime);
+    harmonicGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration * 0.6);
+
+    // Quick attack, long gentle decay
     gain.gain.setValueAtTime(0, startTime);
-    gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-    gain.gain.setValueAtTime(volume, startTime + duration - 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-    osc.start(startTime);
-    osc.stop(startTime + duration);
+    gain.gain.linearRampToValueAtTime(volume, startTime + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+    fundamental.connect(gain);
+    harmonic.connect(harmonicGain);
+    gain.connect(ctx.destination);
+    harmonicGain.connect(ctx.destination);
+
+    fundamental.start(startTime);
+    fundamental.stop(startTime + duration);
+    harmonic.start(startTime);
+    harmonic.stop(startTime + duration);
   }
 
   function timerFinished() {
     // Vibration (Android / some browsers only — iOS Safari ignores this silently)
-    try { if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400, 200, 600]); } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
 
-    // Visual flash so you notice when returning to the tab
-    document.body.style.transition = 'background-color 0.15s';
+    // Gentle visual pulse so you notice when returning to the tab
+    document.body.style.transition = 'background-color 0.4s';
     let flashes = 0;
     const flashInterval = setInterval(() => {
-      document.body.style.backgroundColor = flashes % 2 === 0 ? 'var(--accent)' : '';
+      document.body.style.backgroundColor = flashes % 2 === 0 ? 'rgba(107, 115, 65, 0.15)' : '';
       flashes++;
-      if (flashes >= 6) {
+      if (flashes >= 4) {
         clearInterval(flashInterval);
         document.body.style.backgroundColor = '';
       }
-    }, 200);
+    }, 400);
 
-    // Audio: an alarm pattern, ~3 seconds total
+    // Audio: a soft three-note chime, like a doorbell or meditation bell
     try {
       const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      // Resume context if it was suspended (common on iOS after backgrounding)
       if (ctx.state === 'suspended') ctx.resume();
 
       const now = ctx.currentTime;
-      const volume = 0.45;
+      const volume = 0.35;
 
-      // Three two-tone "ding-dong" pairs with gaps, like a kitchen timer alarm
-      const pattern = [
-        { freq: 1200, start: 0.00, dur: 0.18 },
-        { freq: 880,  start: 0.22, dur: 0.18 },
-        { freq: 1200, start: 0.55, dur: 0.18 },
-        { freq: 880,  start: 0.77, dur: 0.18 },
-        { freq: 1200, start: 1.10, dur: 0.18 },
-        { freq: 880,  start: 1.32, dur: 0.18 },
-        // Final longer tone
-        { freq: 1500, start: 1.75, dur: 0.50 }
+      // Three descending bell tones, each rings out softly before the next
+      // Frequencies are a gentle major triad (E5, C5, G4)
+      const notes = [
+        { freq: 659, start: 0.00, dur: 1.4 },
+        { freq: 523, start: 0.55, dur: 1.6 },
+        { freq: 392, start: 1.10, dur: 2.2 }
       ];
-      pattern.forEach(p => playBeep(ctx, p.freq, now + p.start, p.dur, volume));
+      notes.forEach(n => playBell(ctx, n.freq, now + n.start, n.dur, volume));
     } catch (e) { console.error('Audio playback failed:', e); }
   }
 
