@@ -1318,6 +1318,76 @@
     color: var(--ink-soft);
     text-align: center;
     padding: 6px 4px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    position: relative;
+  }
+
+  .day-menu-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink-faded);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .day-menu-btn:hover {
+    border-color: var(--line);
+    color: var(--ink);
+    background: var(--bg-card);
+  }
+  .day-menu-btn.has-clipboard {
+    color: var(--olive);
+  }
+
+  .day-menu-popover {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 25;
+    display: none;
+    min-width: 140px;
+  }
+  .day-menu-popover.show { display: block; }
+  .day-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+  .day-menu-item:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
+  .day-menu-item:disabled { color: var(--ink-faded); cursor: not-allowed; opacity: 0.5; }
+  .day-menu-item.danger { color: var(--accent); }
+  .day-menu-item.danger:hover:not(:disabled) { background: rgba(197, 70, 42, 0.08); }
+
+  /* Mobile: header has menu button on the right */
+  .planner-day-card-header {
+    position: relative;
   }
 
   .planner-slot-label {
@@ -1543,6 +1613,32 @@
     padding: 22px 22px 28px;
     overflow-y: auto;
     animation: slideUp 0.25s ease;
+    position: relative;
+  }
+
+  .picker-x {
+    position: sticky;
+    top: 0;
+    margin-left: auto;
+    margin-bottom: -32px;
+    display: flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.2s;
+  }
+  .picker-x:hover {
+    background: var(--ink);
+    color: var(--bg-card);
+    border-color: var(--ink);
   }
   @keyframes slideUp {
     from { transform: translateY(100%); }
@@ -1988,7 +2084,7 @@
 
     <div class="sidebar-content">
       <div class="brand">
-        <div class="brand-mark">Volume 01 · build 24</div>
+        <div class="brand-mark">Volume 01 · build 25</div>
         <div class="brand-title">David's Dishes</div>
         <div class="brand-sub">a private collection</div>
       </div>
@@ -2017,6 +2113,7 @@
 
 <div class="picker-modal" id="pickerModal">
   <div class="picker-panel">
+    <button class="picker-x" onclick="closePicker()" aria-label="Close">✕</button>
     <div class="picker-title">Add a meal</div>
     <div class="picker-sub" id="pickerSub">Tap a recipe to add</div>
     <ul class="picker-list" id="pickerList"></ul>
@@ -4162,6 +4259,121 @@
     return totals;
   }
 
+  // Day-level clipboard for copy/paste
+  let dayClipboard = null; // array of { recipeId, portions } across all slots, with slot keys
+
+  function dayMenuButton(day) {
+    const dayKey = day;
+    const hasClipboard = !!dayClipboard;
+    const cls = hasClipboard ? 'day-menu-btn has-clipboard' : 'day-menu-btn';
+    return `<button class="${cls}" onclick="toggleDayMenu('${dayKey}', event)" title="Day options">⋮</button>`;
+  }
+
+  function toggleDayMenu(day, event) {
+    event.stopPropagation();
+    // Close any existing menu
+    const existing = document.querySelector('.day-menu-popover.show');
+    if (existing) {
+      const wasForSameDay = existing.dataset.day === day;
+      existing.remove();
+      if (wasForSameDay) return;
+    }
+
+    // Compute day stats for the menu state
+    const meals = [];
+    SLOTS.forEach(slot => {
+      (plan[cellKey(day, slot)] || []).forEach(m => meals.push({ slot, ...m }));
+    });
+    const hasMeals = meals.length > 0;
+    const hasClip = !!dayClipboard;
+
+    // Build the popover
+    const pop = document.createElement('div');
+    pop.className = 'day-menu-popover show';
+    pop.dataset.day = day;
+    pop.innerHTML = `
+      <button class="day-menu-item" onclick="copyDay('${day}', event)" ${!hasMeals ? 'disabled' : ''}>Copy day</button>
+      <button class="day-menu-item" onclick="pasteDay('${day}', event)" ${!hasClip ? 'disabled' : ''}>Paste day</button>
+      <button class="day-menu-item danger" onclick="clearDay('${day}', event)" ${!hasMeals ? 'disabled' : ''}>Clear day</button>
+    `;
+
+    // Insert into the day header element
+    event.target.parentElement.appendChild(pop);
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', closeDayMenuHandler, { once: true });
+    }, 0);
+  }
+
+  function closeDayMenuHandler(e) {
+    if (e.target.closest('.day-menu-popover')) {
+      // re-attach if click was inside the menu (an action button)
+      document.addEventListener('click', closeDayMenuHandler, { once: true });
+      return;
+    }
+    const pop = document.querySelector('.day-menu-popover.show');
+    if (pop) pop.remove();
+  }
+
+  function copyDay(day, event) {
+    if (event) event.stopPropagation();
+    const meals = {};
+    let count = 0;
+    SLOTS.forEach(slot => {
+      const arr = plan[cellKey(day, slot)] || [];
+      if (arr.length > 0) {
+        meals[slot] = arr.map(m => ({ recipeId: m.recipeId, portions: m.portions }));
+        count += arr.length;
+      }
+    });
+    if (count === 0) return;
+    dayClipboard = { meals: meals, fromDay: day };
+    document.querySelector('.day-menu-popover.show')?.remove();
+    renderPlanner();
+    toast('Copied ' + DAY_LABELS[day] + ' (' + count + ' meal' + (count === 1 ? '' : 's') + ')');
+  }
+
+  async function pasteDay(day, event) {
+    if (event) event.stopPropagation();
+    if (!dayClipboard) return;
+    // Replace the day's existing meals with the clipboard contents
+    SLOTS.forEach(slot => {
+      const key = cellKey(day, slot);
+      delete plan[key];
+    });
+    Object.keys(dayClipboard.meals).forEach(slot => {
+      const key = cellKey(day, slot);
+      plan[key] = dayClipboard.meals[slot].map(m => ({ ...m }));
+    });
+    await savePlan();
+    document.querySelector('.day-menu-popover.show')?.remove();
+    renderPlanner();
+    toast('Pasted into ' + DAY_LABELS[day]);
+  }
+
+  async function clearDay(day, event) {
+    if (event) event.stopPropagation();
+    SLOTS.forEach(slot => delete plan[cellKey(day, slot)]);
+    await savePlan();
+    document.querySelector('.day-menu-popover.show')?.remove();
+    renderPlanner();
+  }
+
+  function toast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg-card);padding:10px 18px;border-radius:100px;font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;z-index:600;box-shadow:0 4px 16px rgba(0,0,0,0.2);opacity:0;transition:opacity 0.2s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+  }
+
   function renderPlanner() {
     const main = document.getElementById('main');
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -4182,7 +4394,7 @@
         return `
           <div class="planner-day-card">
             <div class="planner-day-card-header">
-              <span>${DAY_LABELS[day]}</span>
+              <span>${DAY_LABELS[day]} ${dayMenuButton(day)}</span>
               <span class="total-mini">${Math.round(dt.kcal)} kcal · ${Math.round(dt.p)}p / ${Math.round(dt.c)}c / ${Math.round(dt.f)}f</span>
             </div>
             ${slotRows}
@@ -4192,7 +4404,7 @@
     } else {
       // Desktop: 7-day grid
       const headerRow = '<div class="planner-corner"></div>' + DAYS.map(d =>
-        `<div class="planner-day-header">${DAY_LABELS[d]}</div>`
+        `<div class="planner-day-header">${DAY_LABELS[d]} ${dayMenuButton(d)}</div>`
       ).join('');
 
       const slotRows = SLOTS.map(slot => {
@@ -4301,7 +4513,7 @@
   async function addMealToCell(key, recipeId, portions) {
     const r = recipes.find(x => x.id === recipeId);
     if (!r) return;
-    const p = portions || Math.min(2, r.servings); // default 2 servings or whatever recipe makes
+    const p = portions || 1; // default to 1 serving
     if (!plan[key]) plan[key] = [];
     plan[key].push({ recipeId: recipeId, portions: p });
     await savePlan();
